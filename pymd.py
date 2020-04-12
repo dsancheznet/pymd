@@ -17,7 +17,7 @@ from mistune.directives import Admonition
 
 #Define a version number to be able to change it just in one place
 global VERSION_NUMBER, WEB_PAGE
-VERSION_NUMBER = "1.0a"
+VERSION_NUMBER = "1.0b"
 WEB_PAGE="https://github.com/dsancheznet/pymd/"
 
 
@@ -44,7 +44,7 @@ class ImagePathRenderer(mistune.HTMLRenderer):
             s = '<img src="' + "file://" + self.BASEPATH + src + '" alt="' + alt + '"'
         #Do we have a title?
         if title:
-            #Append escaped title to out img
+            #Append escaped title to our img
             s += ' title="' + escape_html(title) + '"'
         #Return data with the closing tag
         return s + ' />'
@@ -56,21 +56,20 @@ class MainWindow(Gtk.Window):
     """
 
     def __init__(self):
-
         #Instantiate config file parser
-        self.cConfig = configobj.ConfigObj( os.path.expanduser("~")+'/.config/pymd/default.config')
+        self.cConfig = configobj.ConfigObj( os.path.expanduser("~")+'/.config/pymd/default.config') #TODO: Error checking
         #Define a path, where the css files a loaded from
-        self.myCSSPath = os.path.expanduser("~")+'/.config/pymd/css/'
+        self.myCSSPath = os.path.expanduser("~")+'/.config/pymd/css/' #TODO: Error checking
         #Create a list holding all css files in that directory (list comprehention)
         tmpCSSFiles = [os.path.basename(tmp) for tmp in glob.glob( self.myCSSPath + "*.css")]
         #-----------------------------------------------------------Construct UI
         #Configure Main Window
         Gtk.Window.__init__(self, title="pymd")
         self.set_border_width( 5 )
-        self.set_default_size( int(self.cConfig['Width']), int(self.cConfig['Height']) )
+        self.set_default_size( int(self.cConfig['Width']), int(self.cConfig['Height']) ) # I might delete this in the future since for this application I prefer a fixed size.
         self.set_position( Gtk.WindowPosition.CENTER )
-
         #---------- Header Bar
+
         #Configure a Headerbar
         self.cHeaderBar = Gtk.HeaderBar()
         self.cHeaderBar.set_show_close_button(True)
@@ -110,6 +109,7 @@ class MainWindow(Gtk.Window):
         self.myWebView = WebKit.WebView()
         self.myWebView.get_settings().allow_universal_access_from_file_urls = True;
         self.myWebView.load_string( '<html><body><br><center>Empty...</center></body></html>', "text/html", "UTF-8", "file://" )
+        self.myWebView.props.settings.props.enable_default_context_menu = False
         self.myScroller.add( self.myWebView )
         self.add( self.myScroller )
         #----------Scroller ***END***
@@ -131,7 +131,6 @@ class MainWindow(Gtk.Window):
         tmpVerticalBox.pack_start( self.myCSSFile, True, False, 10 )
         self.cPopover.add( tmpVerticalBox )
         #Connect popover
-        #self.cPopover.connect( "closed", self.onPopoverClosed )
         self.cPopover.set_position(Gtk.PositionType.BOTTOM)
         #---------- Popover ***END***
         #Save Window data before closing
@@ -140,11 +139,6 @@ class MainWindow(Gtk.Window):
         self.connect("destroy", Gtk.main_quit )
 
     def mainWindowDelete( self, widget, data=None ):
-        # self.cConfig['Width'] = self.get_size()[0]
-        # self.cConfig['Height'] = self.get_size()[1]
-        # self.cConfig['Pos_X'] = self.get_position()[0]
-        # self.cConfig['Pos_Y'] = self.get_position()[1]
-        # self.cConfig.write()
         pass
 
     def onConfigButtonClicked( self, widget ):
@@ -156,11 +150,10 @@ class MainWindow(Gtk.Window):
         self.cPopover.popup()
 
     def loadFileData( self, tmpFilename ):
-        #DEBUG:
-        print('Reloading...')
+        #DEBUG: print('Reloading...')
         #Create a mistune instance with all plugins enabled and a custom renderer
         tmpMarkdown = mistune.create_markdown( escape=False, renderer=ImagePathRenderer( os.path.dirname( tmpFilename )+ "/"  ), plugins=[Admonition(), DirectiveToc(), 'url', 'strikethrough', 'footnotes', 'table'],)
-        #Open the file for reading // TODO: Errog checking -> Filie must be readable
+        #Open the file for reading // TODO: Error checking -> Filie must be readable
         tmpMarkDownFile = open( tmpFilename, "r" )
         #Load the contents of the file as raw data
         tmpRawMarkdown = tmpMarkDownFile.read()
@@ -174,8 +167,7 @@ class MainWindow(Gtk.Window):
         self.myWebView.load_string( tmpPreHTML + tmpMarkdown( tmpRawMarkdown ) + tmpPostHTML, "text/html", "UTF-8", tmpBaseURI  )
         #Close the file we opened for reading
         tmpMarkDownFile.close()
-        #DEBUG:
-        print(tmpPreHTML + tmpMarkdown( tmpRawMarkdown ) + tmpPostHTML)
+        #DEBUG: print(tmpPreHTML + tmpMarkdown( tmpRawMarkdown ) + tmpPostHTML)
 
     def onUpdateBuffonClicked( self, widget ):
         #Call the loader with the filename as parameter
@@ -183,10 +175,11 @@ class MainWindow(Gtk.Window):
 
     def onOpenButtonClicked( self, widget ):
         #Open a dialog to choose a file
-        tmpDialog = Gtk.FileChooserDialog("Please choose a markdown file", self,
-            Gtk.FileChooserAction.OPEN ,
-            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-             "Open", Gtk.ResponseType.OK))
+        tmpDialog = Gtk.FileChooserDialog(
+                "Please choose a markdown file",
+                self,
+                Gtk.FileChooserAction.OPEN ,
+                (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, "Open", Gtk.ResponseType.OK))
         #DEBUG: tmpDialog.set_default_size(500, 350)
         #Create a filter (we only want to permit supported files)
         tmpFilter = Gtk.FileFilter()
