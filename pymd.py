@@ -11,7 +11,8 @@
 import gi, os, glob, configobj, mistune
 gi.require_version('Gtk', '3.0')
 gi.require_version('WebKit', '3.0')
-from gi.repository import Gtk, Gdk, WebKit, Gio, GObject
+gi.require_version('Keybinder', '3.0')
+from gi.repository import Gtk, Gdk, WebKit, Gio, GObject, Keybinder
 from mistune.directives import DirectiveToc
 from mistune.directives import Admonition
 
@@ -57,7 +58,10 @@ class MainWindow(Gtk.Window):
 
     def __init__(self):
         #Instantiate config file parser
-        self.cConfig = configobj.ConfigObj( os.path.expanduser("~")+'/.config/pymd/default.config') #TODO: Error checking
+        self.cConfig = configobj.ConfigObj( os.path.expanduser("~")+'/.config/pymd/default.config')
+        Keybinder.init()
+        Keybinder.bind("<Ctrl>R", self.onUpdateButtonClicked )
+        #TODO: Error checking
         #Define a path, where the css files a loaded from
         self.myCSSPath = os.path.expanduser("~")+'/.config/pymd/css/' #TODO: Error checking
         #Create a list holding all css files in that directory (list comprehention)
@@ -91,7 +95,7 @@ class MainWindow(Gtk.Window):
         myUpdateButton = Gtk.Button()
         myUpdateButton.props.relief = Gtk.ReliefStyle.NONE
         myUpdateButton.add( Gtk.Image.new_from_gicon( Gio.ThemedIcon( name="emblem-synchronizing-symbolic" ), Gtk.IconSize.BUTTON ) )
-        myUpdateButton.connect( "clicked", self.onUpdateBuffonClicked )
+        myUpdateButton.connect( "clicked", self.onUpdateButtonClicked )
 
         #Pack everything
         self.cHeaderBar.pack_start( myConfigButton )
@@ -118,7 +122,10 @@ class MainWindow(Gtk.Window):
         #Define popover items
         self.myCSSFile = Gtk.ComboBoxText()
         for tmpItem in tmpCSSFiles:
-            self.myCSSFile.append_text( tmpItem )
+            if tmpItem == self.cConfig['CSS']:
+                self.myCSSFile.prepend_text( tmpItem )
+            else:
+                self.myCSSFile.append_text( tmpItem )
         self.myCSSFile.set_active(0)
         #Define popover and it's properties
         self.cPopover = Gtk.Popover()
@@ -131,6 +138,7 @@ class MainWindow(Gtk.Window):
         tmpVerticalBox.pack_start( self.myCSSFile, True, False, 10 )
         self.cPopover.add( tmpVerticalBox )
         #Connect popover
+        self.cPopover.connect( "closed", self.onPopoverClosed )
         self.cPopover.set_position(Gtk.PositionType.BOTTOM)
         #---------- Popover ***END***
         #Save Window data before closing
@@ -139,7 +147,15 @@ class MainWindow(Gtk.Window):
         self.connect("destroy", Gtk.main_quit )
 
     def mainWindowDelete( self, widget, data=None ):
-        pass
+        #Save default styelsheet
+        self.cConfig['CSS'] = self.myCSSFile.get_active_text()
+        self.cConfig.write()
+
+    def onPopoverClosed( self, widget ):
+        #Is there any file open?
+        if self.cHeaderBar.props.subtitle != "":
+            #YES - Reload current file
+            self.loadFileData( self.cHeaderBar.props.subtitle )
 
     def onConfigButtonClicked( self, widget ):
         #Position the popover
@@ -169,9 +185,11 @@ class MainWindow(Gtk.Window):
         tmpMarkDownFile.close()
         #DEBUG: print(tmpPreHTML + tmpMarkdown( tmpRawMarkdown ) + tmpPostHTML)
 
-    def onUpdateBuffonClicked( self, widget ):
-        #Call the loader with the filename as parameter
-        self.loadFileData( self.cHeaderBar.props.subtitle )
+    def onUpdateButtonClicked( self, widget ):
+        #Do we have a file loaded?
+        if self.cHeaderBar.props.subtitle != "":
+            #YES - Call the loader with the filename as parameter
+            self.loadFileData( self.cHeaderBar.props.subtitle )
 
     def onOpenButtonClicked( self, widget ):
         #Open a dialog to choose a file
