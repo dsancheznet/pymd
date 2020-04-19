@@ -8,3 +8,14 @@
 
 ## 18 APR 2020
 * Established CTRL+R shortcut for reloading the file
+
+## 19 APR 2020
+* Changed from WebKit1 to WebKit2 since WebKit1 did not support printing
+* Added a print button to the UI
+* Added a keyboard shortcut to print
+* Implemented a print method to print the webview's content
+* Added an information dialog to inform the user that the data has been sent to the printer
+* As we have new functions available, I decided to go a minor version up to v1.1 and released the application out of beta.
+* Implemented the possibility to load data from Files or from parameters
+* Implemented error checking on the existence of a file
+* Edited .desktop file to include the MimeType and %F option, see https://specifications.freedesktop.org/desktop-entry-spec/latest/ar01s06.html

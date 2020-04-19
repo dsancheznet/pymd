@@ -8,17 +8,17 @@
 # Hsiaoming Yang, published at https://github.com/lepture/mistune
 # You may have to install the dependencies from github. Please read the README file.
 
-import gi, os, glob, configobj, mistune
+import sys, os, gi, glob, configobj, mistune
 gi.require_version('Gtk', '3.0')
-gi.require_version('WebKit', '3.0')
+gi.require_version('WebKit2', '4.0')
 gi.require_version('Keybinder', '3.0')
-from gi.repository import Gtk, Gdk, WebKit, Gio, GObject, Keybinder
+from gi.repository import Gtk, Gdk, WebKit2, Gio, GObject, Keybinder
 from mistune.directives import DirectiveToc
 from mistune.directives import Admonition
 
 #Define a version number to be able to change it just in one place
 global VERSION_NUMBER, WEB_PAGE
-VERSION_NUMBER = "1.0b"
+VERSION_NUMBER = "1.1"
 WEB_PAGE="https://github.com/dsancheznet/pymd/"
 
 
@@ -56,11 +56,12 @@ class MainWindow(Gtk.Window):
         This class defines the main window of the application
     """
 
-    def __init__(self):
+    def __init__( self, tmpDefaultFile="" ):
         #Instantiate config file parser
         self.cConfig = configobj.ConfigObj( os.path.expanduser("~")+'/.config/pymd/default.config')
         Keybinder.init()
         Keybinder.bind("<Ctrl>R", self.onUpdateButtonClicked )
+        Keybinder.bind("<Ctrl>P", self.onPrintButtonClicked )
         #TODO: Error checking
         #Define a path, where the css files a loaded from
         self.myCSSPath = os.path.expanduser("~")+'/.config/pymd/css/' #TODO: Error checking
@@ -78,7 +79,7 @@ class MainWindow(Gtk.Window):
         self.cHeaderBar = Gtk.HeaderBar()
         self.cHeaderBar.set_show_close_button(True)
         self.cHeaderBar.props.title = "pymd " + VERSION_NUMBER
-        self.cHeaderBar.props.subtitle = ""
+        self.cHeaderBar.props.subtitle = tmpDefaultFile
         self.set_titlebar(self.cHeaderBar)
 
         #Buttons for Headerbar
@@ -97,10 +98,16 @@ class MainWindow(Gtk.Window):
         myUpdateButton.add( Gtk.Image.new_from_gicon( Gio.ThemedIcon( name="emblem-synchronizing-symbolic" ), Gtk.IconSize.BUTTON ) )
         myUpdateButton.connect( "clicked", self.onUpdateButtonClicked )
 
+        myPrintButton = Gtk.Button()
+        myPrintButton.props.relief = Gtk.ReliefStyle.NONE
+        myPrintButton.add( Gtk.Image.new_from_gicon( Gio.ThemedIcon( name="printer-printing" ), Gtk.IconSize.BUTTON ) )
+        myPrintButton.connect( "clicked", self.onPrintButtonClicked )
+
         #Pack everything
         self.cHeaderBar.pack_start( myConfigButton )
         self.cHeaderBar.pack_end( myOpenButton )
         self.cHeaderBar.pack_end( myUpdateButton )
+        self.cHeaderBar.pack_start( myPrintButton )
         #----------Header Bar ***END***
 
         #----------Scroller
@@ -110,10 +117,11 @@ class MainWindow(Gtk.Window):
         self.myScroller.set_policy( Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC )
 
         #Create a webview
-        self.myWebView = WebKit.WebView()
+        self.myWebView = WebKit2.WebView()
         self.myWebView.get_settings().allow_universal_access_from_file_urls = True;
-        self.myWebView.load_string( '<html><body><br><center>Empty...</center></body></html>', "text/html", "UTF-8", "file://" )
-        self.myWebView.props.settings.props.enable_default_context_menu = False
+        self.myWebView.connect('context-menu', self.contextMenuCallback )
+        self.myWebView.load_html('<html><body><br><center>Empty...</center></body></html>', "file://" )
+        #self.myWebView.props.settings.props.enable_default_context_menu = False
         self.myScroller.add( self.myWebView )
         self.add( self.myScroller )
         #----------Scroller ***END***
@@ -145,6 +153,11 @@ class MainWindow(Gtk.Window):
         self.connect( "delete-event", self.mainWindowDelete )
         #Connect the destroy signal to the main loop quit function
         self.connect("destroy", Gtk.main_quit )
+        #Load the data (it won't do anythign if subtitle is empty)
+        self.loadFileData( self.cHeaderBar.props.subtitle )
+
+    def contextMenuCallback( self, web_view, context_menu, event, hit_test_result ):
+        return True
 
     def mainWindowDelete( self, widget, data=None ):
         #Save default styelsheet
@@ -164,26 +177,6 @@ class MainWindow(Gtk.Window):
         self.cPopover.show_all()
         #Do your thing
         self.cPopover.popup()
-
-    def loadFileData( self, tmpFilename ):
-        #DEBUG: print('Reloading...')
-        #Create a mistune instance with all plugins enabled and a custom renderer
-        tmpMarkdown = mistune.create_markdown( escape=False, renderer=ImagePathRenderer( os.path.dirname( tmpFilename )+ "/"  ), plugins=[Admonition(), DirectiveToc(), 'url', 'strikethrough', 'footnotes', 'table'],)
-        #Open the file for reading // TODO: Error checking -> Filie must be readable
-        tmpMarkDownFile = open( tmpFilename, "r" )
-        #Load the contents of the file as raw data
-        tmpRawMarkdown = tmpMarkDownFile.read()
-        #Define a string to prepend
-        tmpPreHTML = '<html><head><link rel="stylesheet" type="text/css" href="file://' + self.myCSSPath + self.myCSSFile.get_active_text() + '"></head><body class="markdown-body">'
-        #Define a string to append
-        tmpPostHTML = "</body></html>"
-        #Define a base uri // HINT: Without this, we are getting errors trying to load local files
-        tmpBaseURI = "file://"
-        #Load the data into the webview.
-        self.myWebView.load_string( tmpPreHTML + tmpMarkdown( tmpRawMarkdown ) + tmpPostHTML, "text/html", "UTF-8", tmpBaseURI  )
-        #Close the file we opened for reading
-        tmpMarkDownFile.close()
-        #DEBUG: print(tmpPreHTML + tmpMarkdown( tmpRawMarkdown ) + tmpPostHTML)
 
     def onUpdateButtonClicked( self, widget ):
         #Do we have a file loaded?
@@ -224,15 +217,58 @@ class MainWindow(Gtk.Window):
         #Destroy de dialog
         tmpDialog.destroy()
 
+    def onPrintButtonClicked( self, widget ):
+        #Do we have a file open?
+        if self.cHeaderBar.props.subtitle != "":
+            #YES - Launch print dialog
+            tmpOperation = WebKit2.PrintOperation.new( self.myWebView )
+            if tmpOperation.run_dialog() == WebKit2.PrintOperationResponse.CANCEL:
+                print("Print Cancelled!")
+            else:
+                tmpDialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO, Gtk.ButtonsType.OK, "Print Job")
+                tmpDialog.format_secondary_text( "Your print job has been sent to the printer...")
+                tmpDialog.run()
+                tmpDialog.destroy()
 
-#Create Main Window
-myWindow = MainWindow()
+    def loadFileData( self, tmpFilename ):
+        #Does the file we are trying to load exist and is actually a file?
+        if os.path.exists( tmpFilename ) and os.path.isfile( tmpFilename ):
+            #YES - Create a mistune instance with all plugins enabled and a custom renderer
+            tmpMarkdown = mistune.create_markdown( escape=False, renderer=ImagePathRenderer( os.path.dirname( tmpFilename )+ "/"  ), plugins=[Admonition(), DirectiveToc(), 'url', 'strikethrough', 'footnotes', 'table'],)
+            #Open the file for reading // TODO: Error checking -> Filie must be readable
+            tmpMarkDownFile = open( tmpFilename, "r" )
+            #Load the contents of the file as raw data
+            tmpRawMarkdown = tmpMarkDownFile.read()
+            #Define a string to prepend
+            tmpPreHTML = '<html><head><link rel="stylesheet" type="text/css" href="file://' + self.myCSSPath + self.myCSSFile.get_active_text() + '"></head><body class="markdown-body">'
+            #Define a string to append
+            tmpPostHTML = "</body></html>"
+            #Define a base uri // HINT: Without this, we are getting errors trying to load local files
+            tmpBaseURI = "file://"
+            #Load the data into the webview.
+            self.myWebView.load_html( tmpPreHTML + tmpMarkdown( tmpRawMarkdown ) + tmpPostHTML, tmpBaseURI  )
+            #Close the file we opened for reading
+            tmpMarkDownFile.close()
+            #DEBUG: print(tmpPreHTML + tmpMarkdown( tmpRawMarkdown ) + tmpPostHTML)
+        else:
+            print("File not found...") #TODO: Load an adecuate HTML into the view.
 
-#Connect the destroy signal to the main loop quit function
-myWindow.connect("destroy", Gtk.main_quit)
+if __name__ == "__main__":
 
-#Show Windows on screen
-myWindow.show_all()
+    #Check for parameters
+    if len( sys.argv )>1:
+        #DEBUG: print( "Arguments: " + str(sys.argv) )
+        #Create Main Window with parameter
+        myWindow = MainWindow( sys.argv[1] )
+    else:
+        #Create Main Window without parameter
+        myWindow = MainWindow()
 
-#Main Loop
-Gtk.main()
+    #Connect the destroy signal to the main loop quit function
+    myWindow.connect("destroy", Gtk.main_quit)
+
+    #Show Windows on screen
+    myWindow.show_all()
+
+    #Main Loop
+    Gtk.main()
