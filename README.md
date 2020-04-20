@@ -8,18 +8,33 @@ pymd is a Markdown viewer for Linux ( or any compatible OS ) written in Python. 
 
 Therefore, this program **only** renders Markdown files. You can not edit them, that is something you need another program for. I personally like `atom` or ElementaryOS' `Code` a lot.
 
+
 ## Interface
 
 I have built this program to fit in the look and feel of ElementaryOS, but any tester on different systems like Fedora or Suse is welcome to contribute to make it integrate nicely in other distros as well.
 
+
 ## Install
 
-On any Ubuntu-ish Linux distro you will need the packet `gir1.2-webkit-3.0` to be installed.
+On any Ubuntu-ish Linux distro you will need the packet `gir1.2-webkit2-4.0` to be installed.
 Furthermore, the packet *mistune*, by Hsiaoming Yang, needs to be installed (see references below).
+
 
 ## Usage
 
 ** This section will be completed upon finishing the interface **
+
+
+### Stylesheets
+
+Most of the stylesheets come from...
+
+· [](https://github.com/markdowncss)
+
+· [](http://jasonm23.github.io/markdown-css-themes/)
+
+· [](https://sindresorhus.com/github-markdown-css/)
+
 
 ### Based on
 `mistune` library by Hsiaoming Yang available on [GitHub](https://github.com/lepture/mistune)

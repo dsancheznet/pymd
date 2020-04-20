@@ -19,3 +19,12 @@
 * Implemented the possibility to load data from Files or from parameters
 * Implemented error checking on the existence of a file
 * Edited .desktop file to include the MimeType and %F option, see https://specifications.freedesktop.org/desktop-entry-spec/latest/ar01s06.html
+
+## 20 APR 2020
+* The popup will now close as soon as a different stylesheet is selected
+* Mistune library has been updated, so I've updated the minimum requirements as well.
+* The Mistune update brings support of checkboxes
+* Added \*.mkd as admissible extension
+* Included a proposed .desktop file
+* Included the neccessary configuration files
+* Added an about box (F1)
