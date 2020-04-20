@@ -62,6 +62,7 @@ class MainWindow(Gtk.Window):
         Keybinder.init()
         Keybinder.bind("<Ctrl>R", self.onUpdateButtonClicked )
         Keybinder.bind("<Ctrl>P", self.onPrintButtonClicked )
+        Keybinder.bind("F1", self.onAboutOpen )
         #TODO: Error checking
         #Define a path, where the css files a loaded from
         self.myCSSPath = os.path.expanduser("~")+'/.config/pymd/css/' #TODO: Error checking
@@ -71,8 +72,11 @@ class MainWindow(Gtk.Window):
         #Configure Main Window
         Gtk.Window.__init__(self, title="pymd")
         self.set_border_width( 5 )
-        self.set_default_size( int(self.cConfig['Width']), int(self.cConfig['Height']) ) # I might delete this in the future since for this application I prefer a fixed size.
-        self.set_position( Gtk.WindowPosition.CENTER )
+        if self.cConfig['Save_Geometry'] == 1:
+            self.set_default_size( int(self.cConfig['Width']), int(self.cConfig['Height']) )
+        else:
+            self.set_default_size( 750,600 )
+            self.set_position( Gtk.WindowPosition.CENTER )
         #---------- Header Bar
 
         #Configure a Headerbar
@@ -135,6 +139,7 @@ class MainWindow(Gtk.Window):
             else:
                 self.myCSSFile.append_text( tmpItem )
         self.myCSSFile.set_active(0)
+        self.myCSSFile.connect( "changed", self.onComboPopdown )
         #Define popover and it's properties
         self.cPopover = Gtk.Popover()
         self.cPopover.set_border_width( 10 )
@@ -157,6 +162,7 @@ class MainWindow(Gtk.Window):
         self.loadFileData( self.cHeaderBar.props.subtitle )
 
     def contextMenuCallback( self, web_view, context_menu, event, hit_test_result ):
+        #This callback is to avoid opening a context menu
         return True
 
     def mainWindowDelete( self, widget, data=None ):
@@ -165,10 +171,9 @@ class MainWindow(Gtk.Window):
         self.cConfig.write()
 
     def onPopoverClosed( self, widget ):
-        #Is there any file open?
-        if self.cHeaderBar.props.subtitle != "":
-            #YES - Reload current file
-            self.loadFileData( self.cHeaderBar.props.subtitle )
+        #This doesn't do anything anymore, but I'll leave it in
+        #for future functions that are already planned
+        pass
 
     def onConfigButtonClicked( self, widget ):
         #Position the popover
@@ -199,6 +204,8 @@ class MainWindow(Gtk.Window):
         #Option1
         tmpFilter.add_pattern( "*.md" )
         #Option2
+        tmpFilter.add_pattern( "*.mkd" )
+        #Option3
         tmpFilter.add_pattern( "*.markdown" )
         #Add the filter to the dialog
         tmpDialog.add_filter( tmpFilter )
@@ -230,12 +237,37 @@ class MainWindow(Gtk.Window):
                 tmpDialog.run()
                 tmpDialog.destroy()
 
+    def onComboPopdown( self, widget ):
+        #Is there any file open?
+        if self.cHeaderBar.props.subtitle != "":
+            #YES - Reload current file
+            self.loadFileData( self.cHeaderBar.props.subtitle )
+        #Close the popup
+        self.cPopover.popdown()
+
+    def onAboutOpen( self, widget ):
+        tmpAuthor = ["D.Sánchez @DSanchezNET"]
+        tmpBox = Gtk.AboutDialog(parent=self,transient_for=self, modal=True)
+        tmpBox.set_program_name("pymd")
+        tmpBox.set_version( VERSION_NUMBER )
+        tmpBox.set_comments("A markdown viewer with extended syntax")
+        tmpBox.set_copyright("Copyright © 2020 D.Sánchez")
+        tmpBox.set_website( WEB_PAGE )
+        tmpBox.set_authors( tmpAuthor )
+        tmpBox.set_license_type( Gtk.License.GPL_3_0 )
+        tmpBox.set_logo_icon_name( "package_wordprocessing" )
+        tmpBox.add_credit_section( "Projects that made pymd possible:",
+            ["Mistune by Hsiaoming Yang", "https://github.com/lepture/mistune", "markdowncss by John Otander", "http://markdowncss.github.io/", "markdown-css-themes by Jason Milkins", "http://jasonm23.github.io/markdown-css-themes/", "Github Markdown-CSS by Sindre Sorhus", "https://sindresorhus.com/github-markdown-css/"]
+        )
+        tmpBox.run()
+        tmpBox.destroy()
+
     def loadFileData( self, tmpFilename ):
         #Does the file we are trying to load exist and is actually a file?
         if os.path.exists( tmpFilename ) and os.path.isfile( tmpFilename ):
             #YES - Create a mistune instance with all plugins enabled and a custom renderer
-            tmpMarkdown = mistune.create_markdown( escape=False, renderer=ImagePathRenderer( os.path.dirname( tmpFilename )+ "/"  ), plugins=[Admonition(), DirectiveToc(), 'url', 'strikethrough', 'footnotes', 'table'],)
-            #Open the file for reading // TODO: Error checking -> Filie must be readable
+            tmpMarkdown = mistune.create_markdown( escape=False, renderer=ImagePathRenderer( os.path.dirname( tmpFilename )+ "/"  ), plugins=[Admonition(), DirectiveToc(), 'url', 'strikethrough', 'footnotes', 'table', 'task_lists'],)
+            #Open the file for reading // TODO: Error checking -> File must be readable
             tmpMarkDownFile = open( tmpFilename, "r" )
             #Load the contents of the file as raw data
             tmpRawMarkdown = tmpMarkDownFile.read()
