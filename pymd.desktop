@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=pyMD Markdown Viewer
+Comment=View your Markdown files with style!
+Exec=/path_to_your_file/pymd.py %F
+MimeType=text/markdown
+Icon=package_wordprocessing
+Terminal=false
+Type=Application
+Categories=Gtk;Markdown;Office;
+Keywords=utilities;office;markdown;
+X-GNOME-UsesNotifications=false
