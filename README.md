@@ -37,17 +37,17 @@ The first button in the upper left corner allows you to change the stylesheet th
 
 The second button in the upper right corner is the print button. This button allows you to print out the document with the current stylesheet applied. Please be aware, that if you want an ideal printing experience, you may hace to adjust the stylesheet for the media "print".
 
-The print function may also be called by pressing <CTRL>+P.
+The print function may also be called by pressing `CTRL`+`P`.
 
 In the upper right corner, the open button can be found. Trust me, it does just that... open a file.
 
-The shortcut for this function is <CTRL>+O.
+The shortcut for this function is `CTRL`+`O`.
 
 The button right next to it, allows to reload the current file from disc again, in case you have changed it.
 
-This button can be accessed by the shortcut <CTRL>+R
+This button can be accessed by the shortcut `CTRL`+`R`
 
-And last but no least, there is an about box ( after all we have to be a little standard, right? ) which can be accessed by pressing F1.
+And last but no least, there is an about box ( after all we have to be a little standard, right? ) which can be accessed by pressing `F1`.
 
 
 
