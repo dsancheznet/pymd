@@ -12,7 +12,7 @@ import sys, os, gi, glob, configobj, mistune
 gi.require_version('Gtk', '3.0')
 gi.require_version('WebKit2', '4.0')
 gi.require_version('Keybinder', '3.0')
-from gi.repository import Gtk, Gdk, WebKit2, Gio, GObject, Keybinder
+from gi.repository import Gtk, Gdk, WebKit2, Gio, GObject , Keybinder
 from mistune.directives import DirectiveToc
 from mistune.directives import Admonition
 
@@ -62,6 +62,7 @@ class MainWindow(Gtk.Window):
         Keybinder.init()
         Keybinder.bind("<Ctrl>R", self.onUpdateButtonClicked )
         Keybinder.bind("<Ctrl>P", self.onPrintButtonClicked )
+        Keybinder.bind("<Ctrl>O", self.onOpenButtonClicked )
         Keybinder.bind("F1", self.onAboutOpen )
         #TODO: Error checking
         #Define a path, where the css files a loaded from
@@ -170,6 +171,14 @@ class MainWindow(Gtk.Window):
         self.cConfig['CSS'] = self.myCSSFile.get_active_text()
         self.cConfig.write()
 
+    def onComboPopdown( self, widget ):
+        #Is there any file open?
+        if self.cHeaderBar.props.subtitle != "":
+            #YES - Reload current file
+            self.loadFileData( self.cHeaderBar.props.subtitle )
+        #Close the popup
+        self.cPopover.popdown()
+
     def onPopoverClosed( self, widget ):
         #This doesn't do anything anymore, but I'll leave it in
         #for future functions that are already planned
@@ -237,27 +246,20 @@ class MainWindow(Gtk.Window):
                 tmpDialog.run()
                 tmpDialog.destroy()
 
-    def onComboPopdown( self, widget ):
-        #Is there any file open?
-        if self.cHeaderBar.props.subtitle != "":
-            #YES - Reload current file
-            self.loadFileData( self.cHeaderBar.props.subtitle )
-        #Close the popup
-        self.cPopover.popdown()
-
     def onAboutOpen( self, widget ):
         tmpAuthor = ["D.Sánchez @DSanchezNET"]
         tmpBox = Gtk.AboutDialog(parent=self,transient_for=self, modal=True)
         tmpBox.set_program_name("pymd")
         tmpBox.set_version( VERSION_NUMBER )
-        tmpBox.set_comments("A markdown viewer with extended syntax")
+        tmpBox.set_comments("A beautifully simple markdown viewer with extended syntax")
         tmpBox.set_copyright("Copyright © 2020 D.Sánchez")
         tmpBox.set_website( WEB_PAGE )
         tmpBox.set_authors( tmpAuthor )
         tmpBox.set_license_type( Gtk.License.GPL_3_0 )
         tmpBox.set_logo_icon_name( "package_wordprocessing" )
         tmpBox.add_credit_section( "Projects that made pymd possible:",
-            ["Mistune by Hsiaoming Yang", "https://github.com/lepture/mistune", "markdowncss by John Otander", "http://markdowncss.github.io/", "markdown-css-themes by Jason Milkins", "http://jasonm23.github.io/markdown-css-themes/", "Github Markdown-CSS by Sindre Sorhus", "https://sindresorhus.com/github-markdown-css/"]
+            ["Mistune by Hsiaoming Yang", "https://github.com/lepture/mistune", "markdowncss by John Otander", "http://markdowncss.github.io/", "markdown-css-themes by Jason Milkins", "http://jasonm23.github.io/markdown-css-themes/", "Github Markdown-CSS by Sindre Sorhus", "https://sindresorhus.com/github-markdown-css/", "WebKit2GTK library by the GNOME Project", "https://webkitgtk.org/", "pyGObject library by the GNOME Project", "https://github.com/GNOME/pygobject"
+            ]
         )
         tmpBox.run()
         tmpBox.destroy()
