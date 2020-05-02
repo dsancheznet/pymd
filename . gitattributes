@@ -1,1 +1,1 @@
-configuration_files/css/* linguist-vendored
+*.css linguist-detectable=false
