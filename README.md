@@ -12,7 +12,7 @@ Therefore, this program **only** renders Markdown files. You can not edit them, 
 
 ## Interface
 
-I have built this program to fit in the look and feel of ElementaryOS, but any tester on different systems like Fedora or Suse is welcome to contribute to make it integrate nicely in other distros as well.
+I have built this program to fit in the look and feel of ElementaryOS, but any tester on different systems like Fedora or Suse is welcome to contribute to make it integrate nicely into other distros as well.
 
 
 
